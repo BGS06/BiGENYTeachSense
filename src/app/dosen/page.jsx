@@ -4,7 +4,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Users, Activity, AlertCircle, Search, TrendingUp, Sparkles,
   CheckCircle, Loader2, X, Mail, Target, BookX, BookOpen,
-  Edit, Trash2, Plus, Eye, Download, FileText, ChevronDown, BookKey, MessageSquare, Save
+  Edit, Trash2, Plus, Eye, Download, FileText, ChevronDown, 
+  BookKey, MessageSquare, Save, Upload
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -908,11 +909,15 @@ function TabRekomendasi({ activeClass, setClasses }) {
   );
 
   // State untuk Quiz Editor
-  const [quizEditorMode, setQuizEditorMode] = useState(null); // 'ai' atau 'manual'
+  const [quizEditorMode, setQuizEditorMode] = useState(null); // 'ai', 'manual', atau 'upload'
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [isSavingQuiz, setIsSavingQuiz] = useState(false);
+  
+  // State untuk Upload File Modal
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
-  // Generate Soal Dummy AI berdasarkan Topik
+  // 1. Generate Soal Dummy AI
   const getDummyAIQuestions = (topik) => [
     {
       id: 1,
@@ -937,11 +942,39 @@ function TabRekomendasi({ activeClass, setClasses }) {
     }, 2000); 
   };
 
+  // 2. Buat Soal Manual
   const handleBuatManual = () => {
     setQuizQuestions([{ id: Date.now(), question: '', options: ['', '', '', ''], correct: 0 }]);
     setQuizEditorMode('manual');
   };
 
+  // 3. Ekstrak dari File (Simulasi)
+  const handleFileUpload = () => {
+    if (isUploading) return;
+    setIsUploading(true);
+    setTimeout(() => {
+      setIsUploading(false);
+      setShowUploadModal(false);
+      // Dummy data dari hasil ekstraksi file
+      setQuizQuestions([
+        {
+          id: Date.now() + 1,
+          question: `Berikan analisis kompleks mengenai keterkaitan ${activeClass.topikKritis} dengan efisiensi memori (Berdasarkan Modul).`,
+          options: ['Sangat Efisien', 'Memakan banyak memori stack', 'Menyebabkan infinite loop jika tanpa base case', 'Tidak berdampak pada memori'],
+          correct: 1
+        },
+        {
+          id: Date.now() + 2,
+          question: `Kasus penggunaan manakah yang paling ideal untuk ${activeClass.topikKritis} di industri nyata?`,
+          options: ['Pencarian data berurutan', 'Manipulasi struktur direktori file', 'Perhitungan aritmatika sederhana', 'Desain UI/UX'],
+          correct: 1
+        }
+      ]);
+      setQuizEditorMode('upload');
+    }, 2000); // Simulasi proses loading ekstraksi 2 detik
+  };
+
+  // CRUD Editor
   const updateQuestion = (id, field, value) => {
     setQuizQuestions(qs => qs.map(q => q.id === id ? { ...q, [field]: value } : q));
   };
@@ -968,7 +1001,6 @@ function TabRekomendasi({ activeClass, setClasses }) {
   const handleSaveQuiz = () => {
     setIsSavingQuiz(true);
     setTimeout(() => {
-      // Masukkan ke daftar Kuis
       const newKuis = {
         id: Date.now(),
         judul: `Remedial: ${activeClass.topikKritis}`,
@@ -1021,9 +1053,15 @@ function TabRekomendasi({ activeClass, setClasses }) {
               <button onClick={handleGenerateAI} disabled={status === 'loading'} className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-3.5 rounded-xl shadow-xl shadow-purple-200 transition-all active:scale-95 flex items-center gap-2 disabled:opacity-80">
                 {status === 'loading' ? <><Loader2 className="w-5 h-5 animate-spin" /> Menganalisis Data...</> : <><Sparkles className="w-5 h-5" /> Generate AI Remedial</>}
               </button>
+              
               <button onClick={handleBuatManual} disabled={status === 'loading'} className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold px-6 py-3.5 rounded-xl shadow-sm transition-all active:scale-95 flex items-center gap-2 disabled:opacity-80">
-                <Edit className="w-5 h-5" /> Buat Soal Manual
+                <Edit className="w-5 h-5" /> Buat Manual
               </button>
+              
+              <button onClick={() => setShowUploadModal(true)} disabled={status === 'loading'} className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold px-6 py-3.5 rounded-xl shadow-sm transition-all active:scale-95 flex items-center gap-2 disabled:opacity-80">
+                <Upload className="w-5 h-5" /> Upload File Soal
+              </button>
+              
               <button onClick={() => setShowAnnounceModal(true)} disabled={status === 'loading'} className="bg-white border border-purple-100 text-purple-600 font-bold px-6 py-3.5 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 flex items-center gap-2 disabled:opacity-80">
                 <MessageSquare className="w-5 h-5" /> Pengumuman
               </button>
@@ -1032,7 +1070,45 @@ function TabRekomendasi({ activeClass, setClasses }) {
         )}
       </div>
 
-      {/* ================= MODAL QUIZ EDITOR (AI / MANUAL) ================= */}
+      {/* ================= MODAL UPLOAD FILE SOAL ================= */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200 relative overflow-hidden">
+            <button 
+              onClick={() => !isUploading && setShowUploadModal(false)} 
+              className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 bg-slate-50 p-2 rounded-full transition-colors active:scale-95 disabled:opacity-50"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-2xl font-black text-slate-800 mb-2">Upload File Soal</h3>
+            <p className="text-slate-500 text-sm font-medium mb-6">Sistem AI akan mengekstrak pertanyaan dari file Anda secara otomatis.</p>
+            
+            <div 
+              onClick={handleFileUpload}
+              className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center mb-6 transition-colors cursor-pointer group ${
+                isUploading ? 'border-purple-400 bg-purple-50' : 'border-slate-300 hover:border-purple-400 hover:bg-purple-50'
+              }`}
+            >
+              {isUploading ? (
+                <div className="animate-in zoom-in duration-300 flex flex-col items-center">
+                  <Loader2 className="w-12 h-12 text-purple-500 animate-spin mb-4" />
+                  <p className="text-sm font-bold text-purple-700">Mengekstrak soal dengan AI...</p>
+                </div>
+              ) : (
+                <>
+                  <div className="w-14 h-14 bg-slate-100 group-hover:bg-purple-100 rounded-full flex items-center justify-center mb-4 transition-colors">
+                    <Upload className="w-7 h-7 text-slate-400 group-hover:text-purple-600" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-700 mb-1">Klik atau Drag & Drop file di sini</p>
+                  <p className="text-xs text-slate-500 font-medium">Mendukung .PDF, .DOCX, .TXT (Maks 10MB)</p>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL QUIZ EDITOR (AI / MANUAL / UPLOAD) ================= */}
       {quizEditorMode && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 md:p-8">
           <div className="bg-white rounded-[2.5rem] w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden relative border border-slate-100">
@@ -1040,12 +1116,14 @@ function TabRekomendasi({ activeClass, setClasses }) {
             {/* Header */}
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
               <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold shadow-md ${quizEditorMode === 'ai' ? 'bg-purple-500' : 'bg-blue-500'}`}>
-                  {quizEditorMode === 'ai' ? <Sparkles className="w-6 h-6" /> : <Edit className="w-6 h-6" />}
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold shadow-md ${
+                  quizEditorMode === 'ai' ? 'bg-purple-500' : quizEditorMode === 'upload' ? 'bg-indigo-500' : 'bg-blue-500'
+                }`}>
+                  {quizEditorMode === 'ai' ? <Sparkles className="w-6 h-6" /> : quizEditorMode === 'upload' ? <Upload className="w-6 h-6" /> : <Edit className="w-6 h-6" />}
                 </div>
                 <div>
                   <h2 className="font-black text-slate-800 text-xl">
-                    {quizEditorMode === 'ai' ? 'Review Soal Generate AI' : 'Buat Soal Remedial Manual'}
+                    {quizEditorMode === 'ai' ? 'Review Soal Generate AI' : quizEditorMode === 'upload' ? 'Review Soal dari File' : 'Buat Soal Remedial Manual'}
                   </h2>
                   <p className="text-xs font-bold text-slate-500 mt-0.5">Topik: {activeClass.topikKritis}</p>
                 </div>
